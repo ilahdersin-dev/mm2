@@ -1,0 +1,121 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local tool = script.Parent
+local remote = ReplicatedStorage:WaitForChild("GunFire")
+
+local mouse
+local equipped = false
+
+tool.Equipped:Connect(function(m)
+	mouse = m
+	equipped = true
+end)
+
+tool.Unequipped:Connect(function()
+	equipped = false
+	mouse = nil
+end)
+
+local function isMurder(plr)
+	if not plr or plr == player then
+		return false
+	end
+
+	-- Attribute'lar
+	for _, name in ipairs({
+		"Role",
+		"role",
+		"ROLE",
+		"RoleName",
+		"roleName",
+		"PlayerRole",
+		"playerRole"
+	}) do
+		local value = plr:GetAttribute(name)
+
+		if typeof(value) == "string" then
+			local v = string.lower(value)
+
+			if v == "murder" or v == "murderer" then
+				return true
+			end
+		end
+	end
+
+	-- Player içerisindeki StringValue'lar
+	for _, object in ipairs(plr:GetDescendants()) do
+		if object:IsA("StringValue") then
+			local v = string.lower(object.Value)
+
+			if v == "murder" or v == "murderer" then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+local function findMurderer()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if isMurder(plr) then
+			local character = plr.Character
+
+			if character then
+				local humanoid =
+					character:FindFirstChildOfClass("Humanoid")
+
+				local head =
+					character:FindFirstChild("Head")
+
+				if humanoid
+					and humanoid.Health > 0
+					and head then
+
+					return plr, head
+				end
+			end
+		end
+	end
+
+	return nil, nil
+end
+
+tool.Activated:Connect(function()
+	if not equipped then
+		return
+	end
+
+	local handle = tool:FindFirstChild("Handle")
+
+	if not handle then
+		return
+	end
+
+	-- Murder'ı bul
+	local murderer, targetPart = findMurderer()
+
+	local origin = handle.Position
+	local direction
+
+	if murderer and targetPart then
+		-- SILENT AIM
+		-- ShiftLock'tan bağımsız.
+		direction = (
+			targetPart.Position - origin
+		).Unit
+	else
+		-- Murder bulunamazsa normal nişan
+		if not mouse then
+			return
+		end
+
+		direction = (
+			mouse.Hit.Position - origin
+		).Unit
+	end
+
+	remote:FireServer(origin, direction)
+end)
