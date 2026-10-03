@@ -1,0 +1,82 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remote = ReplicatedStorage:WaitForChild("GunFire")
+
+local RANGE = 500
+local DAMAGE = 100
+
+remote.OnServerEvent:Connect(function(player, clientOrigin, clientDirection)
+
+	local character = player.Character
+
+	if not character then
+		return
+	end
+
+	local humanoid =
+		character:FindFirstChildOfClass("Humanoid")
+
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
+
+	local tool = character:FindFirstChildOfClass("Tool")
+
+	if not tool then
+		return
+	end
+
+	local handle = tool:FindFirstChild("Handle")
+
+	if not handle then
+		return
+	end
+
+	-- Client'ın gönderdiği origin'e güvenme.
+	local origin = handle.Position
+
+	if typeof(clientDirection) ~= "Vector3" then
+		return
+	end
+
+	if clientDirection.Magnitude < 0.9 then
+		return
+	end
+
+	local direction = clientDirection.Unit
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {
+		character
+	}
+
+	local result = workspace:Raycast(
+		origin,
+		direction * RANGE,
+		params
+	)
+
+	if not result then
+		return
+	end
+
+	local hitPart = result.Instance
+
+	local targetCharacter =
+		hitPart:FindFirstAncestorOfClass("Model")
+
+	if not targetCharacter then
+		return
+	end
+
+	local targetHumanoid =
+		targetCharacter:FindFirstChildOfClass("Humanoid")
+
+	if not targetHumanoid or targetHumanoid.Health <= 0 then
+		return
+	end
+
+	-- Hasar
+	targetHumanoid:TakeDamage(DAMAGE)
+end)
